@@ -110,17 +110,18 @@ exports.Server = Server = (function() {
   };
   Server.prototype.listen = function() {
     this.socket = io.listen(this.server);
-    return this.socket.on("connection", __bind(function(client) {
+    this.socket.configure(__bind(function() {
+      return this.socket.set('log level', 1);
+    }, this));
+    return this.socket.of('/snake').on("connection", __bind(function(client) {
       client.snakeId = this.autoClient;
       this.autoClient += 1;
-      this.emit('Server.connection', client.snakeId);
       sys.puts("Client " + client.snakeId + " connected");
-      client.send(JSON.stringify({
-        type: 'id',
-        value: client.snakeId
-      }));
-      client.on("message", __bind(function(message) {
-        message = JSON.parse(message);
+      this.emit('Server.connection', client.snakeId);
+      client.emit('id', {
+        id: client.snakeId
+      });
+      client.on("direction", __bind(function(message) {
         return this.emit('Server.direction', client.snakeId, message.direction);
       }, this));
       return client.on("disconnect", __bind(function() {
@@ -130,11 +131,10 @@ exports.Server = Server = (function() {
     }, this));
   };
   Server.prototype.update = function(snakes, goodies) {
-    return this.socket.broadcast(JSON.stringify({
-      type: 'update',
+    return this.socket.of('/snake').emit('update', {
       snakes: snakes,
       goodies: goodies
-    }));
+    });
   };
   return Server;
 })();

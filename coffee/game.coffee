@@ -91,33 +91,27 @@ exports.Server =  class Server extends EventEmitter
 
   listen: -> 
     @socket = io.listen(@server)
-    @socket.on "connection", (client) =>
+    
+    @socket.configure( =>
+      @socket.set('log level', 1)
+    )
+    
+    @socket.of('/snake').on "connection", (client) =>
       client.snakeId = @autoClient
       @autoClient += 1
-      @emit('Server.connection', client.snakeId)
-      
       sys.puts "Client #{client.snakeId} connected"
-      client.send JSON.stringify(
-        type: 'id',
-        value: client.snakeId
-      )
+      @emit('Server.connection', client.snakeId)
+      client.emit('id', {id: client.snakeId})
       
-      client.on "message",  (message) =>
-        message = JSON.parse(message)
+      client.on "direction",  (message) =>
         @emit('Server.direction', client.snakeId, message.direction)
-        
         
       client.on "disconnect", =>
         sys.puts "Client #{client.snakeId} disconnected"
         @emit('Server.disconnect', client.snakeId)
         
   update: (snakes, goodies) ->
-    @socket.broadcast JSON.stringify(
-      type: 'update',
-      snakes: snakes,
-      goodies: goodies
-    )
-
+    @socket.of('/snake').emit('update', {snakes: snakes, goodies: goodies})
 
 
 sys = require 'sys'
