@@ -1,0 +1,10 @@
+{
+  "name":         "snake",
+  "version":      "0.0.1",
+  "dependencies": {
+    "coffee-script": ">= 1.0.1",
+    "socket.io": "= 0.8.5",
+    "express": ">= 2.4.7",
+    "uglify-js": ">= 1.1.1"
+  }
+}
