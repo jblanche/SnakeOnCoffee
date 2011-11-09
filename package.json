@@ -5,6 +5,8 @@
     "coffee-script": ">= 1.0.1",
     "socket.io": "= 0.8.5",
     "express": ">= 2.4.7",
-    "uglify-js": ">= 1.1.1"
+    "uglify-js": ">= 1.1.1",
+    "mysql": ">= 0.9.3",
+    "twitter": "https://jblanche@github.com/jblanche/node-twitter.git"
   }
 }

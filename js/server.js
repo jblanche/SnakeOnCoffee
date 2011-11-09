@@ -43,16 +43,22 @@ exports.Server = Server = (function() {
       client.on("direction", __bind(function(message) {
         return this.emit('Server.direction', client.snakeId, message.direction);
       }, this));
+      client.on("name", __bind(function(message) {
+        return this.emit('Server.name', client.snakeId, message.name);
+      }, this));
       return client.on("disconnect", __bind(function() {
         sys.puts("Client " + client.snakeId + " disconnected");
         return this.emit('Server.disconnect', client.snakeId);
       }, this));
     }, this));
   };
-  Server.prototype.update = function(snakes, goodies) {
+  Server.prototype.update = function(snakes, goodies, topTen) {
     return this.socket.of('/snake').emit('update', {
       snakes: snakes,
-      goodies: goodies
+      goodies: goodies,
+      topTen: {
+        scores: topTen
+      }
     });
   };
   return Server;
