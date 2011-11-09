@@ -7,6 +7,6 @@
     "express": ">= 2.4.7",
     "uglify-js": ">= 1.1.1",
     "mysql": ">= 0.9.3",
-    "twitter": "https://jblanche@github.com/jblanche/node-twitter.git"
+    "twitter": "git://github.com/jblanche/node-twitter.git"
   }
 }
