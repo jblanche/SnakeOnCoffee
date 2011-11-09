@@ -4,6 +4,11 @@ exports.Goodie = Goodie = (function() {
   function Goodie() {
     this.x = Math.floor(Math.random() * config.STAGE_WIDTH);
     this.y = Math.floor(Math.random() * config.STAGE_HEIGHT);
+    this.age = 0;
   }
+  Goodie.prototype.makeOlder = function() {
+    console.log(this.age);
+    return this.age++;
+  };
   return Goodie;
 })();

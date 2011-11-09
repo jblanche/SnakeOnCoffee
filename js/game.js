@@ -1,4 +1,4 @@
-var EventEmitter, Goodie, Server, Snake, checkCollisions, config, createGoodie, express, goodies, io, server, snakes, sys, tick, updateState, util, utils;
+var Database, EventEmitter, Goodie, Server, Snake, SnakeEmitter, TwitterListener, checkCollisions, config, createGoodie, database, events, express, goodies, io, server, snakes, sys, tick, topTen, twitterListener, updateState, util, utils;
 var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
   for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
   function ctor() { this.constructor = child; }
@@ -15,19 +15,45 @@ exports.Goodie = Goodie = (function() {
   function Goodie() {
     this.x = Math.floor(Math.random() * config.STAGE_WIDTH);
     this.y = Math.floor(Math.random() * config.STAGE_HEIGHT);
+    this.age = 0;
   }
+  Goodie.prototype.makeOlder = function() {
+    console.log(age);
+    return this.age++;
+  };
   return Goodie;
 })();
 Server = require('./server').Server;
 EventEmitter = (require('events')).EventEmitter;
 Snake = require('./snake').Snake;
+SnakeEmitter = require('./snake').SnakeEmitter;
 Goodie = require('./goodie').Goodie;
+TwitterListener = require('./twitterListener').TwitterListener;
+Database = require('./database').Database;
 utils = require('./utils');
 config = require('./config');
 snakes = {};
 goodies = [];
+topTen = {};
 server = new Server(5000);
+twitterListener = new TwitterListener();
+database = new Database({
+  database: 'twitter',
+  table: 'scores',
+  user: 'root',
+  password: ''
+});
 server.start();
+twitterListener.watch();
+SnakeEmitter.on('createPlayer', function(opts) {
+  return database.createPlayer(opts.name);
+});
+SnakeEmitter.on('updateScore', function(opts) {
+  return database.updateScore(opts.name, opts.score);
+});
+database.on('topTen', function(data) {
+  return topTen = data;
+});
 server.on('Server.connection', function(clientId) {
   var snake;
   snake = new Snake(clientId);
@@ -39,14 +65,30 @@ server.on('Server.disconnect', function(clientId) {
 server.on('Server.direction', function(clientId, direction) {
   return snakes[clientId].direction = direction;
 });
+server.on('Server.name', function(clientId, name) {
+  return snakes[clientId].setName(name);
+});
+twitterListener.on('newTweet', function() {
+  return createGoodie();
+});
 updateState = function() {
-  var index, snake;
+  var goodie, index, snake;
   for (index in snakes) {
     snake = snakes[index];
     snake.doStep();
   }
+  for (index in goodies) {
+    goodie = goodies[index];
+    goodies.makeOlder();
+  }
+  for (index in goodies) {
+    goodie = goodies[index];
+    if (goodie.age < 20) {
+      goodies = goodie;
+    }
+  }
   checkCollisions();
-  return server.update(snakes, goodies);
+  return server.update(snakes, goodies, topTen);
 };
 checkCollisions = function() {
   var goodie, index, other, resetSnakes, snake, _i, _j, _len, _len2, _results;
@@ -61,7 +103,6 @@ checkCollisions = function() {
       if (snake.ateGoodie(goodie)) {
         snake.addGoodie();
         goodies.remove(goodie);
-        createGoodie();
       }
     }
     for (index in snakes) {
@@ -87,7 +128,6 @@ createGoodie = function() {
   return goodies.push(goodie);
 };
 tick = setInterval(updateState, 100);
-createGoodie();
 io = require('socket.io');
 express = require('express');
 sys = require('sys');
@@ -124,33 +164,50 @@ exports.Server = Server = (function() {
       client.on("direction", __bind(function(message) {
         return this.emit('Server.direction', client.snakeId, message.direction);
       }, this));
+      client.on("name", __bind(function(message) {
+        return this.emit('Server.name', client.snakeId, message.name);
+      }, this));
       return client.on("disconnect", __bind(function() {
         sys.puts("Client " + client.snakeId + " disconnected");
         return this.emit('Server.disconnect', client.snakeId);
       }, this));
     }, this));
   };
-  Server.prototype.update = function(snakes, goodies) {
+  Server.prototype.update = function(snakes, goodies, topTen) {
     return this.socket.of('/snake').emit('update', {
       snakes: snakes,
-      goodies: goodies
+      goodies: goodies,
+      topTen: {
+        scores: topTen
+      }
     });
   };
   return Server;
 })();
 sys = require('sys');
 util = require('util');
+events = require('events');
 config = require('./config');
+Database = require('./database').Database;
 /* Snake Class */
+exports.SnakeEmitter = SnakeEmitter = new events.EventEmitter;
 exports.Snake = Snake = (function() {
+  __extends(Snake, events.EventEmitter);
   function Snake(id) {
     this.id = id;
-    this.reset();
     this.kills = 0;
     this.deaths = 0;
     this.goodies = 0;
     this.length = config.SNAKE_LENGTH;
+    this.name = "";
+    this.reset();
   }
+  Snake.prototype.setName = function(name) {
+    this.name = name;
+    return SnakeEmitter.emit('createPlayer', {
+      name: this.name
+    });
+  };
   Snake.prototype.addKill = function() {
     this.kills++;
     this.length = this.elements.unshift({
@@ -165,7 +222,7 @@ exports.Snake = Snake = (function() {
     this.deaths++;
     this.length = config.SNAKE_LENGTH;
     this.direction = "right";
-    return this.elements = (function() {
+    this.elements = (function() {
       var _ref, _results;
       _results = [];
       for (i = _ref = this.length; _ref <= 1 ? i <= 1 : i >= 1; _ref <= 1 ? i++ : i--) {
@@ -176,6 +233,14 @@ exports.Snake = Snake = (function() {
       }
       return _results;
     }).call(this);
+    this.emit('reset');
+    return SnakeEmitter.emit('updateScore', {
+      name: this.name,
+      score: this.getScore()
+    });
+  };
+  Snake.prototype.getScore = function() {
+    return this.goodies * 2 + this.kills - this.deaths;
   };
   Snake.prototype.doStep = function() {
     var i, _ref;
@@ -244,6 +309,9 @@ exports.Snake = Snake = (function() {
   };
   Snake.prototype.ateGoodie = function(goodie) {
     var head;
+    if (goodie == null) {
+      return false;
+    }
     head = this.head();
     return head.x === goodie.x && head.y === goodie.y;
   };

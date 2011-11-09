@@ -9,22 +9,53 @@ exports.Goodie = class Goodie
   constructor: ->
     @x = Math.floor(Math.random() * config.STAGE_WIDTH)
     @y = Math.floor(Math.random() * config.STAGE_HEIGHT)
+    @age = 0
+    
+  makeOlder: ->
+    console.log(age)
+    @age++
   
 
 Server = require('./server').Server
 EventEmitter = (require 'events').EventEmitter
 Snake = require('./snake').Snake
+SnakeEmitter = require('./snake').SnakeEmitter
 Goodie = require('./goodie').Goodie
+TwitterListener = require('./twitterListener').TwitterListener
+Database = require('./database').Database
 utils = require './utils'
 config = require './config'
 
 snakes = {}
 goodies = []
+topTen = {}
 
 server = new Server(5000)
-server.start()
+twitterListener = new TwitterListener()
 
-server.on('Server.connection', (clientId) -> 
+database = new Database(
+  database: 'twitter',
+  table: 'scores',
+  user: 'root',
+  password: ''
+)
+
+server.start()
+twitterListener.watch()
+
+SnakeEmitter.on('createPlayer', (opts)->
+  database.createPlayer(opts.name)
+)
+
+SnakeEmitter.on('updateScore', (opts)->
+  database.updateScore(opts.name, opts.score)
+)
+
+database.on('topTen', (data)->
+  topTen = data
+)
+
+server.on('Server.connection', (clientId) ->
   snake = new Snake clientId
   snakes[clientId] = snake
 )
@@ -37,11 +68,20 @@ server.on('Server.direction', (clientId, direction) ->
   snakes[clientId].direction = direction
 )
 
+server.on('Server.name', (clientId, name) -> 
+  snakes[clientId].setName name
+)
+
+twitterListener.on('newTweet', ->
+  createGoodie()  
+)
 
 updateState = ->
   snake.doStep() for index, snake of snakes
+  goodies.makeOlder() for index, goodie of goodies
+  goodies = goodie for index, goodie of goodies when goodie.age < 20
   checkCollisions()
-  server.update(snakes, goodies)
+  server.update(snakes, goodies, topTen)
 
 checkCollisions = ->
   resetSnakes = []
@@ -53,7 +93,6 @@ checkCollisions = ->
       if snake.ateGoodie(goodie)
         snake.addGoodie()
         goodies.remove(goodie)
-        createGoodie()
 
     for index, other of snakes
       if other isnt snake
@@ -69,7 +108,7 @@ createGoodie = ->
   goodies.push goodie
 
 tick = setInterval updateState, 100
-createGoodie()
+
 
 io = require 'socket.io'
 express = require 'express'
@@ -105,27 +144,41 @@ exports.Server =  class Server extends EventEmitter
       
       client.on "direction",  (message) =>
         @emit('Server.direction', client.snakeId, message.direction)
+
+      client.on "name",  (message) =>
+        @emit('Server.name', client.snakeId, message.name)
+
         
       client.on "disconnect", =>
         sys.puts "Client #{client.snakeId} disconnected"
         @emit('Server.disconnect', client.snakeId)
         
-  update: (snakes, goodies) ->
-    @socket.of('/snake').emit('update', {snakes: snakes, goodies: goodies})
+  update: (snakes, goodies, topTen) ->
+    @socket.of('/snake').emit('update', {snakes: snakes, goodies: goodies, topTen: {scores: topTen}})
+    
 
 
 sys = require 'sys'
 util = require 'util'
+events  = require('events')
 config = require './config'
+Database = require('./database').Database
 
 ### Snake Class ###
-exports.Snake = class Snake
+exports.SnakeEmitter = SnakeEmitter = new events.EventEmitter
+exports.Snake = class Snake extends events.EventEmitter
+
   constructor: (@id) ->
-    @reset()
     @kills = 0
     @deaths = 0
     @goodies = 0
     @length = config.SNAKE_LENGTH
+    @name = ""
+    @reset()
+    
+  setName: (name) ->
+    @name = name 
+    SnakeEmitter.emit('createPlayer', {name: @name})
     
   addKill: ->
     @kills++
@@ -138,6 +191,11 @@ exports.Snake = class Snake
     @length = config.SNAKE_LENGTH
     @direction = "right"  
     @elements = ( {x: -i, y: rH} for i in [@length..1])
+    @emit 'reset'
+    SnakeEmitter.emit('updateScore', {name: @name, score: @getScore()})
+    
+  getScore: ->
+    @goodies * 2 + @kills - @deaths
     
   doStep: ->
     @moveTail i for i in [0...(@length-1)] #every element except the head
@@ -179,6 +237,7 @@ exports.Snake = class Snake
     return collision
     
   ateGoodie: (goodie) ->
+    return false unless goodie?
     head = @head()
     head.x == goodie.x and head.y == goodie.y
 

@@ -4,6 +4,7 @@ Snake = require('./snake').Snake
 SnakeEmitter = require('./snake').SnakeEmitter
 Goodie = require('./goodie').Goodie
 TwitterListener = require('./twitterListener').TwitterListener
+util = require 'util'
 Database = require('./database').Database
 utils = require './utils'
 config = require './config'
@@ -60,6 +61,15 @@ twitterListener.on('newTweet', ->
 
 updateState = ->
   snake.doStep() for index, snake of snakes
+  
+  removable = []
+  
+  for goodie in goodies
+    goodie.age++
+    console.log(goodie)
+    removable.push goodie if goodie.age > 50
+  
+  goodies.remove(goodie) for goodie in removable  
   checkCollisions()
   server.update(snakes, goodies, topTen)
 

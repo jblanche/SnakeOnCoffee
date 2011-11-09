@@ -10,7 +10,7 @@ define(["/socket.io/socket.io.js", "cs!coffee/pubsub"], (SocketIO, PubSub)->
         alert "Your browser does not support websockets."
 
     connect: (name)->
-      @server = io.connect "http://91.121.166.147:5001/snake"
+      @server = io.connect "http://localhost:5000/snake"
       @server.emit('name', {name : name})
       @server.on "id", (message) ->
         PubSub('SettingID').publish(message.id)

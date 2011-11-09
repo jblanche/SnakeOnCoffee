@@ -1,10 +1,11 @@
-var Database, EventEmitter, Goodie, Server, Snake, SnakeEmitter, TwitterListener, checkCollisions, config, createGoodie, database, goodies, server, snakes, tick, topTen, twitterListener, updateState, utils;
+var Database, EventEmitter, Goodie, Server, Snake, SnakeEmitter, TwitterListener, checkCollisions, config, createGoodie, database, goodies, server, snakes, tick, topTen, twitterListener, updateState, util, utils;
 Server = require('./server').Server;
 EventEmitter = (require('events')).EventEmitter;
 Snake = require('./snake').Snake;
 SnakeEmitter = require('./snake').SnakeEmitter;
 Goodie = require('./goodie').Goodie;
 TwitterListener = require('./twitterListener').TwitterListener;
+util = require('util');
 Database = require('./database').Database;
 utils = require('./utils');
 config = require('./config');
@@ -48,10 +49,23 @@ twitterListener.on('newTweet', function() {
   return createGoodie();
 });
 updateState = function() {
-  var index, snake;
+  var goodie, index, removable, snake, _i, _j, _len, _len2;
   for (index in snakes) {
     snake = snakes[index];
     snake.doStep();
+  }
+  removable = [];
+  for (_i = 0, _len = goodies.length; _i < _len; _i++) {
+    goodie = goodies[_i];
+    goodie.age++;
+    console.log(goodie);
+    if (goodie.age > 50) {
+      removable.push(goodie);
+    }
+  }
+  for (_j = 0, _len2 = removable.length; _j < _len2; _j++) {
+    goodie = removable[_j];
+    goodies.remove(goodie);
   }
   checkCollisions();
   return server.update(snakes, goodies, topTen);
