@@ -6,7 +6,6 @@ define(["cs!coffee/pubsub", "libs/handlebars", "text!templates/topTen.html"], (P
 
     update: (list) =>
         context = list 
-        console.log(context)
         $(@sel).html(@template(context))
 
 )
