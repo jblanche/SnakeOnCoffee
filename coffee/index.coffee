@@ -1,17 +1,43 @@
 Server = require('./server').Server
 EventEmitter = (require 'events').EventEmitter
 Snake = require('./snake').Snake
+SnakeEmitter = require('./snake').SnakeEmitter
 Goodie = require('./goodie').Goodie
+TwitterListener = require('./twitterListener').TwitterListener
+Database = require('./database').Database
 utils = require './utils'
 config = require './config'
 
 snakes = {}
 goodies = []
+topTen = {}
 
 server = new Server(5000)
-server.start()
+twitterListener = new TwitterListener()
 
-server.on('Server.connection', (clientId) -> 
+database = new Database(
+  database: 'twitter',
+  table: 'scores',
+  user: 'root',
+  password: ''
+)
+
+server.start()
+twitterListener.watch()
+
+SnakeEmitter.on('createPlayer', (opts)->
+  database.createPlayer(opts.name)
+)
+
+SnakeEmitter.on('updateScore', (opts)->
+  database.updateScore(opts.name, opts.score)
+)
+
+database.on('topTen', (data)->
+  topTen = data
+)
+
+server.on('Server.connection', (clientId) ->
   snake = new Snake clientId
   snakes[clientId] = snake
 )
@@ -24,11 +50,18 @@ server.on('Server.direction', (clientId, direction) ->
   snakes[clientId].direction = direction
 )
 
+server.on('Server.name', (clientId, name) -> 
+  snakes[clientId].setName name
+)
+
+twitterListener.on('newTweet', ->
+  createGoodie()  
+)
 
 updateState = ->
   snake.doStep() for index, snake of snakes
   checkCollisions()
-  server.update(snakes, goodies)
+  server.update(snakes, goodies, topTen)
 
 checkCollisions = ->
   resetSnakes = []
@@ -40,7 +73,6 @@ checkCollisions = ->
       if snake.ateGoodie(goodie)
         snake.addGoodie()
         goodies.remove(goodie)
-        createGoodie()
 
     for index, other of snakes
       if other isnt snake
@@ -56,4 +88,3 @@ createGoodie = ->
   goodies.push goodie
 
 tick = setInterval updateState, 100
-createGoodie()

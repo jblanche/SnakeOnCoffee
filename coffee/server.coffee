@@ -32,10 +32,15 @@ exports.Server =  class Server extends EventEmitter
       
       client.on "direction",  (message) =>
         @emit('Server.direction', client.snakeId, message.direction)
+
+      client.on "name",  (message) =>
+        @emit('Server.name', client.snakeId, message.name)
+
         
       client.on "disconnect", =>
         sys.puts "Client #{client.snakeId} disconnected"
         @emit('Server.disconnect', client.snakeId)
         
-  update: (snakes, goodies) ->
-    @socket.of('/snake').emit('update', {snakes: snakes, goodies: goodies})
+  update: (snakes, goodies, topTen) ->
+    @socket.of('/snake').emit('update', {snakes: snakes, goodies: goodies, topTen: {scores: topTen}})
+    

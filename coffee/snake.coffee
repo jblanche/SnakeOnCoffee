@@ -1,15 +1,24 @@
 sys = require 'sys'
 util = require 'util'
+events  = require('events')
 config = require './config'
+Database = require('./database').Database
 
 ### Snake Class ###
-exports.Snake = class Snake
+exports.SnakeEmitter = SnakeEmitter = new events.EventEmitter
+exports.Snake = class Snake extends events.EventEmitter
+
   constructor: (@id) ->
-    @reset()
     @kills = 0
     @deaths = 0
     @goodies = 0
     @length = config.SNAKE_LENGTH
+    @name = ""
+    @reset()
+    
+  setName: (name) ->
+    @name = name 
+    SnakeEmitter.emit('createPlayer', {name: @name})
     
   addKill: ->
     @kills++
@@ -22,6 +31,11 @@ exports.Snake = class Snake
     @length = config.SNAKE_LENGTH
     @direction = "right"  
     @elements = ( {x: -i, y: rH} for i in [@length..1])
+    @emit 'reset'
+    SnakeEmitter.emit('updateScore', {name: @name, score: @getScore()})
+    
+  getScore: ->
+    @goodies * 2 + @kills - @deaths
     
   doStep: ->
     @moveTail i for i in [0...(@length-1)] #every element except the head
@@ -63,6 +77,7 @@ exports.Snake = class Snake
     return collision
     
   ateGoodie: (goodie) ->
+    return false unless goodie?
     head = @head()
     head.x == goodie.x and head.y == goodie.y
 

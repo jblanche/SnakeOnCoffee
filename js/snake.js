@@ -1,17 +1,36 @@
-var Snake, config, sys, util;
+var Database, Snake, SnakeEmitter, config, events, sys, util;
+var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
+  for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
+  function ctor() { this.constructor = child; }
+  ctor.prototype = parent.prototype;
+  child.prototype = new ctor;
+  child.__super__ = parent.prototype;
+  return child;
+};
 sys = require('sys');
 util = require('util');
+events = require('events');
 config = require('./config');
+Database = require('./database').Database;
 /* Snake Class */
+exports.SnakeEmitter = SnakeEmitter = new events.EventEmitter;
 exports.Snake = Snake = (function() {
+  __extends(Snake, events.EventEmitter);
   function Snake(id) {
     this.id = id;
-    this.reset();
     this.kills = 0;
     this.deaths = 0;
     this.goodies = 0;
     this.length = config.SNAKE_LENGTH;
+    this.name = "";
+    this.reset();
   }
+  Snake.prototype.setName = function(name) {
+    this.name = name;
+    return SnakeEmitter.emit('createPlayer', {
+      name: this.name
+    });
+  };
   Snake.prototype.addKill = function() {
     this.kills++;
     this.length = this.elements.unshift({
@@ -26,7 +45,7 @@ exports.Snake = Snake = (function() {
     this.deaths++;
     this.length = config.SNAKE_LENGTH;
     this.direction = "right";
-    return this.elements = (function() {
+    this.elements = (function() {
       var _ref, _results;
       _results = [];
       for (i = _ref = this.length; _ref <= 1 ? i <= 1 : i >= 1; _ref <= 1 ? i++ : i--) {
@@ -37,6 +56,14 @@ exports.Snake = Snake = (function() {
       }
       return _results;
     }).call(this);
+    this.emit('reset');
+    return SnakeEmitter.emit('updateScore', {
+      name: this.name,
+      score: this.getScore()
+    });
+  };
+  Snake.prototype.getScore = function() {
+    return this.goodies * 2 + this.kills - this.deaths;
   };
   Snake.prototype.doStep = function() {
     var i, _ref;
@@ -105,6 +132,9 @@ exports.Snake = Snake = (function() {
   };
   Snake.prototype.ateGoodie = function(goodie) {
     var head;
+    if (goodie == null) {
+      return false;
+    }
     head = this.head();
     return head.x === goodie.x && head.y === goodie.y;
   };
