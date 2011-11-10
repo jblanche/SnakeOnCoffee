@@ -1,6 +1,5 @@
 io = require 'socket.io'
 express = require 'express'
-sys = require 'sys'
 util = require 'util'
 EventEmitter = (require 'events').EventEmitter
 
@@ -26,7 +25,7 @@ exports.Server =  class Server extends EventEmitter
     @socket.of('/snake').on "connection", (client) =>
       client.snakeId = @autoClient
       @autoClient += 1
-      sys.puts "Client #{client.snakeId} connected"
+      util.puts "Client #{client.snakeId} connected"
       @emit('Server.connection', client.snakeId)
       client.emit('id', {id: client.snakeId})
       
@@ -38,7 +37,7 @@ exports.Server =  class Server extends EventEmitter
 
         
       client.on "disconnect", =>
-        sys.puts "Client #{client.snakeId} disconnected"
+        util.puts "Client #{client.snakeId} disconnected"
         @emit('Server.disconnect', client.snakeId)
         
   update: (snakes, goodies, topTen) ->

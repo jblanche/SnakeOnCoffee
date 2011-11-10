@@ -1,4 +1,3 @@
-sys = require 'sys'
 util = require 'util'
 config = require './config'
 events  = require('events').EventEmitter
@@ -18,9 +17,9 @@ exports.Database = class Database extends events
     query = 'INSERT INTO '+ @options.table + ' (score, name) VALUES (?, ?)'
     @client.query(query, [score, user], (err) ->
       if err
-        sys.puts(util.inspect(err)) 
+        util.puts(util.inspect(err)) 
       else
-        sys.puts('inserted')
+        util.puts('inserted')
     )
 
   # There is a unique ID on the name column so that there can't be multiple players with the same name
@@ -29,9 +28,9 @@ exports.Database = class Database extends events
     query = 'UPDATE '+ @options.table + ' SET score=? WHERE name=? AND score < ?'
     @client.query(query, [score, user, score], (err) =>
       if err
-        sys.puts(util.inspect(err)) 
+        util.puts(util.inspect(err)) 
       else
-        sys.puts('updated')
+        util.puts('updated')
         @topTen()
     )
     
@@ -39,7 +38,7 @@ exports.Database = class Database extends events
     query = 'SELECT * FROM '+ @options.table + ' ORDER BY score desc LIMIT 10'
     @client.query(query, (err, data) =>
       if err
-        sys.puts(util.inspect(err)) 
+        util.puts(util.inspect(err)) 
       else
         @emit 'topTen', data
     )    

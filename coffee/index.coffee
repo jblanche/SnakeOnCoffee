@@ -8,7 +8,7 @@ util = require 'util'
 Database = require('./database').Database
 utils = require './utils'
 config = require './config'
-DatabaseConfig = require('./DatabaseConfig').DatabaseConfig
+DatabaseConfig = require('./databaseConfig').DatabaseConfig
 
 snakes = {}
 goodies = []
