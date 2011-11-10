@@ -8,6 +8,7 @@ util = require 'util'
 Database = require('./database').Database
 utils = require './utils'
 config = require './config'
+DatabaseConfig = require('./DatabaseConfig').DatabaseConfig
 
 snakes = {}
 goodies = []
@@ -16,12 +17,7 @@ topTen = {}
 server = new Server(5000)
 twitterListener = new TwitterListener()
 
-database = new Database(
-  database: 'twitter',
-  table: 'scores',
-  user: 'root',
-  password: ''
-)
+database = new Database(DatabaseConfig)
 
 server.start()
 twitterListener.watch()
@@ -62,13 +58,7 @@ twitterListener.on('newTweet', ->
 updateState = ->
   snake.doStep() for index, snake of snakes
   
-  removable = []
-  
-  for goodie in goodies
-    goodie.age++
-    console.log(goodie)
-    removable.push goodie if goodie.age > 50
-  
+  removable = (goodie for goodie in goodies when goodie.age++ > 50)
   goodies.remove(goodie) for goodie in removable  
   checkCollisions()
   server.update(snakes, goodies, topTen)

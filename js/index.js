@@ -1,4 +1,4 @@
-var Database, EventEmitter, Goodie, Server, Snake, SnakeEmitter, TwitterListener, checkCollisions, config, createGoodie, database, goodies, server, snakes, tick, topTen, twitterListener, updateState, util, utils;
+var Database, DatabaseConfig, EventEmitter, Goodie, Server, Snake, SnakeEmitter, TwitterListener, checkCollisions, config, createGoodie, database, goodies, server, snakes, tick, topTen, twitterListener, updateState, util, utils;
 Server = require('./server').Server;
 EventEmitter = (require('events')).EventEmitter;
 Snake = require('./snake').Snake;
@@ -9,17 +9,13 @@ util = require('util');
 Database = require('./database').Database;
 utils = require('./utils');
 config = require('./config');
+DatabaseConfig = require('./DatabaseConfig').DatabaseConfig;
 snakes = {};
 goodies = [];
 topTen = {};
 server = new Server(5000);
 twitterListener = new TwitterListener();
-database = new Database({
-  database: 'twitter',
-  table: 'scores',
-  user: 'root',
-  password: ''
-});
+database = new Database(DatabaseConfig);
 server.start();
 twitterListener.watch();
 SnakeEmitter.on('createPlayer', function(opts) {
@@ -49,22 +45,24 @@ twitterListener.on('newTweet', function() {
   return createGoodie();
 });
 updateState = function() {
-  var goodie, index, removable, snake, _i, _j, _len, _len2;
+  var goodie, index, removable, snake, _i, _len;
   for (index in snakes) {
     snake = snakes[index];
     snake.doStep();
   }
-  removable = [];
-  for (_i = 0, _len = goodies.length; _i < _len; _i++) {
-    goodie = goodies[_i];
-    goodie.age++;
-    console.log(goodie);
-    if (goodie.age > 50) {
-      removable.push(goodie);
+  removable = (function() {
+    var _i, _len, _results;
+    _results = [];
+    for (_i = 0, _len = goodies.length; _i < _len; _i++) {
+      goodie = goodies[_i];
+      if (goodie.age++ > 50) {
+        _results.push(goodie);
+      }
     }
-  }
-  for (_j = 0, _len2 = removable.length; _j < _len2; _j++) {
-    goodie = removable[_j];
+    return _results;
+  })();
+  for (_i = 0, _len = removable.length; _i < _len; _i++) {
+    goodie = removable[_i];
     goodies.remove(goodie);
   }
   checkCollisions();

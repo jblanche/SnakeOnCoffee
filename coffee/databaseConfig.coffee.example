@@ -1,0 +1,16 @@
+exports.DatabaseConfig = 
+  database: 'twitter',
+  table: 'scores',
+  user: 'user',
+  password: 'password'
+
+###
+Create table with 
+CREATE TABLE `scores` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `score` int(11) DEFAULT NULL,
+  `name` varchar(10) NOT NULL DEFAULT '',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name` (`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8;
+###
