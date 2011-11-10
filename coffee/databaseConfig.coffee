@@ -1,8 +1,8 @@
 exports.DatabaseConfig = 
-  database: 'twitter',
-  table: 'scores',
-  user: 'user',
-  password: 'password'
+  database: process.env.SNAKES_DATABASE_NAME
+  table: process.env.SNAKES_DATABASE_TABLE
+  user: process.env.SNAKES_DATABASE_USER
+  password: process.env.SNAKES_DATABASE_PASSWORD
 
 ###
 Create table with 

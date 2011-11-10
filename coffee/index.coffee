@@ -14,7 +14,7 @@ snakes = {}
 goodies = []
 topTen = {}
 
-server = new Server(5000)
+server = new Server(process.env.SNAKES_SERVER_PORT || 5000)
 twitterListener = new TwitterListener()
 
 database = new Database(DatabaseConfig)
