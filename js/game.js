@@ -1,4 +1,4 @@
-var Database, EventEmitter, Goodie, Server, Snake, SnakeEmitter, TwitterListener, checkCollisions, config, createGoodie, database, events, express, goodies, io, server, snakes, sys, tick, topTen, twitterListener, updateState, util, utils;
+var Database, DatabaseConfig, EventEmitter, Goodie, Server, Snake, SnakeEmitter, TwitterListener, checkCollisions, config, createGoodie, database, events, express, goodies, io, server, snakes, sys, tick, topTen, twitterListener, updateState, util, utils;
 var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
 exports.STAGE_WIDTH = 49;
@@ -17,11 +17,6 @@ exports.Goodie = Goodie = (function() {
     this.age = 0;
   }
 
-  Goodie.prototype.makeOlder = function() {
-    console.log(age);
-    return this.age++;
-  };
-
   return Goodie;
 
 })();
@@ -38,11 +33,15 @@ Goodie = require('./goodie').Goodie;
 
 TwitterListener = require('./twitterListener').TwitterListener;
 
+util = require('util');
+
 Database = require('./database').Database;
 
 utils = require('./utils');
 
 config = require('./config');
+
+DatabaseConfig = require('./databaseConfig').DatabaseConfig;
 
 snakes = {};
 
@@ -50,16 +49,11 @@ goodies = [];
 
 topTen = {};
 
-server = new Server(5000);
+server = new Server(process.env.SNAKES_SERVER_PORT || 5000);
 
 twitterListener = new TwitterListener();
 
-database = new Database({
-  database: 'twitter',
-  table: 'scores',
-  user: 'root',
-  password: ''
-});
+database = new Database(DatabaseConfig);
 
 server.start();
 
@@ -100,21 +94,35 @@ twitterListener.on('newTweet', function() {
 });
 
 updateState = function() {
-  var goodie, index, snake;
+  var goodie, index, removable, snake, snakesJSON, _i, _len;
   for (index in snakes) {
     snake = snakes[index];
     snake.doStep();
   }
-  for (index in goodies) {
-    goodie = goodies[index];
-    goodies.makeOlder();
-  }
-  for (index in goodies) {
-    goodie = goodies[index];
-    if (goodie.age < 20) goodies = goodie;
+  removable = (function() {
+    var _i, _len, _results;
+    _results = [];
+    for (_i = 0, _len = goodies.length; _i < _len; _i++) {
+      goodie = goodies[_i];
+      if (goodie.age++ > 100) _results.push(goodie);
+    }
+    return _results;
+  })();
+  for (_i = 0, _len = removable.length; _i < _len; _i++) {
+    goodie = removable[_i];
+    goodies.remove(goodie);
   }
   checkCollisions();
-  return server.update(snakes, goodies, topTen);
+  snakesJSON = (function() {
+    var _results;
+    _results = [];
+    for (index in snakes) {
+      snake = snakes[index];
+      _results.push(snake.toJSON());
+    }
+    return _results;
+  })();
+  return server.update(snakesJSON, goodies, topTen);
 };
 
 checkCollisions = function() {
@@ -160,8 +168,6 @@ io = require('socket.io');
 
 express = require('express');
 
-sys = require('sys');
-
 util = require('util');
 
 EventEmitter = (require('events')).EventEmitter;
@@ -171,7 +177,7 @@ exports.Server = Server = (function() {
   __extends(Server, EventEmitter);
 
   function Server(port) {
-    if (port == null) port = 5000;
+    if (port == null) port = 5001;
     this.autoClient = 1;
     this.port = parseInt(process.env.PORT || port, 10);
   }
@@ -192,7 +198,7 @@ exports.Server = Server = (function() {
     return this.socket.of('/snake').on("connection", function(client) {
       client.snakeId = _this.autoClient;
       _this.autoClient += 1;
-      sys.puts("Client " + client.snakeId + " connected");
+      util.puts("Client " + client.snakeId + " connected");
       _this.emit('Server.connection', client.snakeId);
       client.emit('id', {
         id: client.snakeId
@@ -204,7 +210,7 @@ exports.Server = Server = (function() {
         return _this.emit('Server.name', client.snakeId, message.name);
       });
       return client.on("disconnect", function() {
-        sys.puts("Client " + client.snakeId + " disconnected");
+        util.puts("Client " + client.snakeId + " disconnected");
         return _this.emit('Server.disconnect', client.snakeId);
       });
     });
@@ -251,6 +257,7 @@ exports.Snake = Snake = (function() {
     this.length = config.SNAKE_LENGTH;
     this.name = "";
     this.reset();
+    this.color = Math.floor(Math.random() * 16777215).toString(16);
   }
 
   Snake.prototype.setName = function(name) {
@@ -258,6 +265,22 @@ exports.Snake = Snake = (function() {
     return SnakeEmitter.emit('createPlayer', {
       name: this.name
     });
+  };
+
+  Snake.prototype.toJSON = function() {
+    return {
+      elements: this.elements,
+      goodies: this.goodies,
+      kills: this.kills,
+      deaths: this.deaths,
+      color: this.color,
+      name: this.name,
+      score: this.score()
+    };
+  };
+
+  Snake.prototype.score = function() {
+    return this.goodies + this.kills;
   };
 
   Snake.prototype.addKill = function() {
@@ -273,6 +296,7 @@ exports.Snake = Snake = (function() {
     var i, rH;
     rH = Math.floor(Math.random() * 49);
     this.deaths++;
+    this.goodies = this.kills = 0;
     this.length = config.SNAKE_LENGTH;
     this.direction = "right";
     this.elements = (function() {

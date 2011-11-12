@@ -17,6 +17,7 @@ define(["/socket.io/socket.io.js", "cs!coffee/pubsub"], (SocketIO, PubSub)->
       @server.on "update", (message) ->
         PubSub('Update').publish(message.snakes, message.goodies)
         PubSub('TopTen').publish(message.topTen)
+        PubSub('Scores').publish(message.snakes)
             
     setDirection: (direction) => 
       @server.emit('direction', {direction : direction})

@@ -10,11 +10,6 @@ exports.Goodie = Goodie = (function() {
     this.age = 0;
   }
 
-  Goodie.prototype.makeOlder = function() {
-    console.log(this.age);
-    return this.age++;
-  };
-
   return Goodie;
 
 })();

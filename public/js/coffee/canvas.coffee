@@ -17,20 +17,21 @@ define(["cs!coffee/pubsub"], (PubSub)->
       
       # Draw goodies
       for goodie in goodies
-        @context.fillStyle = 'rgb(0,170,0)'
+        r = Math.floor(parseInt(goodie.age, 10) * 255 / 100)
+        @context.fillStyle = "rgb(#{r},170,0)"
         x = goodie.x * 10
         y = goodie.y * 10
         @context.fillRect(x, y, 9, 9)
   
       # Draw snakes
-      for index, snake of snakes
-        @context.fillStyle = if snake.id == @id then 'rgb(170,0,0)' else 'rgb(0,0,0)'
-        if snake.id == @id
-          $("#kills").html("Kills: #{snake.kills}")
-          $("#goodies").html("Goodies: #{snake.goodies}")
-          $("#deaths").html("Deaths: #{snake.deaths}")
-          score = snake.kills + snake.goodies * 2 - snake.deaths
-          $("#score").html("Score: #{score}")
+      for snake in snakes
+        @context.fillStyle = snake.color #if snake.id == @id then 'rgb(170,0,0)' else 'rgb(0,0,0)'
+        #if snake.id == @id
+          #$("#kills").html("Kills: #{snake.kills}")
+          #$("#goodies").html("Goodies: #{snake.goodies}")
+          #$("#deaths").html("Deaths: #{snake.deaths}")
+          #score = snake.kills + snake.goodies * 2 - snake.deaths
+          #$("#score").html("Score: #{score}")
         for element in snake.elements
           x = element.x * 10
           y = element.y * 10

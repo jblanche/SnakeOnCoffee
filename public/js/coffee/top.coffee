@@ -7,5 +7,4 @@ define(["cs!coffee/pubsub", "libs/handlebars", "text!templates/topTen.html"], (P
     update: (list) =>
         context = list 
         $(@sel).html(@template(context))
-
 )

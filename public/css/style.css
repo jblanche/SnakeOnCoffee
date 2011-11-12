@@ -45,3 +45,35 @@ p {
 	font-weight: normal;
 	font-size: 11px;
 }
+
+dt, dd{
+  display: block;
+  float: left;
+}
+
+dt{
+  width: 100px;
+  overflow: ellipsis;
+  clear: both;
+}
+
+#scores dt{
+  width: 20px;
+  height: 20px;
+}
+
+#playground{
+  position: relative;
+}
+
+#top{
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+#scores{
+  position: absolute;
+  top: 0;
+  right: 0;
+}

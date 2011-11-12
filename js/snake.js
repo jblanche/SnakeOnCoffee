@@ -28,6 +28,7 @@ exports.Snake = Snake = (function() {
     this.length = config.SNAKE_LENGTH;
     this.name = "";
     this.reset();
+    this.color = Math.floor(Math.random() * 16777215).toString(16);
   }
 
   Snake.prototype.setName = function(name) {
@@ -35,6 +36,22 @@ exports.Snake = Snake = (function() {
     return SnakeEmitter.emit('createPlayer', {
       name: this.name
     });
+  };
+
+  Snake.prototype.toJSON = function() {
+    return {
+      elements: this.elements,
+      goodies: this.goodies,
+      kills: this.kills,
+      deaths: this.deaths,
+      color: this.color,
+      name: this.name,
+      score: this.score()
+    };
+  };
+
+  Snake.prototype.score = function() {
+    return this.goodies + this.kills;
   };
 
   Snake.prototype.addKill = function() {
@@ -50,6 +67,7 @@ exports.Snake = Snake = (function() {
     var i, rH;
     rH = Math.floor(Math.random() * 49);
     this.deaths++;
+    this.goodies = this.kills = 0;
     this.length = config.SNAKE_LENGTH;
     this.direction = "right";
     this.elements = (function() {

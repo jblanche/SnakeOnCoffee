@@ -73,7 +73,7 @@ twitterListener.on('newTweet', function() {
 });
 
 updateState = function() {
-  var goodie, index, removable, snake, _i, _len;
+  var goodie, index, removable, snake, snakesJSON, _i, _len;
   for (index in snakes) {
     snake = snakes[index];
     snake.doStep();
@@ -83,7 +83,7 @@ updateState = function() {
     _results = [];
     for (_i = 0, _len = goodies.length; _i < _len; _i++) {
       goodie = goodies[_i];
-      if (goodie.age++ > 50) _results.push(goodie);
+      if (goodie.age++ > 100) _results.push(goodie);
     }
     return _results;
   })();
@@ -92,7 +92,16 @@ updateState = function() {
     goodies.remove(goodie);
   }
   checkCollisions();
-  return server.update(snakes, goodies, topTen);
+  snakesJSON = (function() {
+    var _results;
+    _results = [];
+    for (index in snakes) {
+      snake = snakes[index];
+      _results.push(snake.toJSON());
+    }
+    return _results;
+  })();
+  return server.update(snakesJSON, goodies, topTen);
 };
 
 checkCollisions = function() {

@@ -14,7 +14,7 @@ exports.Server = Server = (function() {
   __extends(Server, EventEmitter);
 
   function Server(port) {
-    if (port == null) port = 5000;
+    if (port == null) port = 5001;
     this.autoClient = 1;
     this.port = parseInt(process.env.PORT || port, 10);
   }

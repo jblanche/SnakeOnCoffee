@@ -58,10 +58,12 @@ twitterListener.on('newTweet', ->
 updateState = ->
   snake.doStep() for index, snake of snakes
   
-  removable = (goodie for goodie in goodies when goodie.age++ > 50)
+  removable = (goodie for goodie in goodies when goodie.age++ > 100)
   goodies.remove(goodie) for goodie in removable  
   checkCollisions()
-  server.update(snakes, goodies, topTen)
+  
+  snakesJSON = (snake.toJSON() for index, snake of snakes)
+  server.update(snakesJSON, goodies, topTen)
 
 checkCollisions = ->
   resetSnakes = []

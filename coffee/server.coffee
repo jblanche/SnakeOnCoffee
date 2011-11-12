@@ -5,7 +5,7 @@ EventEmitter = (require 'events').EventEmitter
 
 exports.Server =  class Server extends EventEmitter 
   
-  constructor: (port = 5000) -> 
+  constructor: (port = 5001) -> 
     @autoClient = 1
     @port = parseInt(process.env.PORT || port, 10)
 

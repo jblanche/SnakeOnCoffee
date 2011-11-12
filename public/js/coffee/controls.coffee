@@ -8,6 +8,8 @@ define(["cs!coffee/pubsub"], (PubSub)->
           when 38 then @sendDirection "up"
           when 39 then @sendDirection "right"
           when 40 then @sendDirection "down"
+        event.stopPropagation();
+        event.preventDefault();
     
     sendDirection: (direction) ->
       PubSub('Direction').publish(direction)

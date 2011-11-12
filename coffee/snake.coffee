@@ -15,11 +15,24 @@ exports.Snake = class Snake extends events.EventEmitter
     @length = config.SNAKE_LENGTH
     @name = ""
     @reset()
+    @color = Math.floor(Math.random()*16777215).toString(16) # 16777215 == ffffff in decimal
     
   setName: (name) ->
     @name = name 
     SnakeEmitter.emit('createPlayer', {name: @name})
     
+  toJSON: ->
+    elements: @elements
+    goodies: @goodies
+    kills: @kills
+    deaths: @deaths
+    color: @color
+    name: @name
+    score: @score()
+    
+  score: ->
+    @goodies + @kills
+  
   addKill: ->
     @kills++
     @length = @elements.unshift({x: -1, y: -1})
@@ -28,6 +41,7 @@ exports.Snake = class Snake extends events.EventEmitter
   reset: ->
     rH = Math.floor(Math.random()*49)
     @deaths++
+    @goodies = @kills = 0
     @length = config.SNAKE_LENGTH
     @direction = "right"  
     @elements = ( {x: -i, y: rH} for i in [@length..1])
@@ -89,5 +103,3 @@ exports.Snake = class Snake extends events.EventEmitter
       collision = true if head.x == @elements[i].x and head.y == @elements[i].y
     
     return collision
-
-

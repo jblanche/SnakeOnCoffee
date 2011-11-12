@@ -10,11 +10,7 @@ exports.Goodie = class Goodie
     @x = Math.floor(Math.random() * config.STAGE_WIDTH)
     @y = Math.floor(Math.random() * config.STAGE_HEIGHT)
     @age = 0
-    
-  makeOlder: ->
-    console.log(age)
-    @age++
-  
+
 
 Server = require('./server').Server
 EventEmitter = (require 'events').EventEmitter
@@ -22,23 +18,20 @@ Snake = require('./snake').Snake
 SnakeEmitter = require('./snake').SnakeEmitter
 Goodie = require('./goodie').Goodie
 TwitterListener = require('./twitterListener').TwitterListener
+util = require 'util'
 Database = require('./database').Database
 utils = require './utils'
 config = require './config'
+DatabaseConfig = require('./databaseConfig').DatabaseConfig
 
 snakes = {}
 goodies = []
 topTen = {}
 
-server = new Server(5000)
+server = new Server(process.env.SNAKES_SERVER_PORT || 5000)
 twitterListener = new TwitterListener()
 
-database = new Database(
-  database: 'twitter',
-  table: 'scores',
-  user: 'root',
-  password: ''
-)
+database = new Database(DatabaseConfig)
 
 server.start()
 twitterListener.watch()
@@ -78,10 +71,13 @@ twitterListener.on('newTweet', ->
 
 updateState = ->
   snake.doStep() for index, snake of snakes
-  goodies.makeOlder() for index, goodie of goodies
-  goodies = goodie for index, goodie of goodies when goodie.age < 20
+  
+  removable = (goodie for goodie in goodies when goodie.age++ > 100)
+  goodies.remove(goodie) for goodie in removable  
   checkCollisions()
-  server.update(snakes, goodies, topTen)
+  
+  snakesJSON = (snake.toJSON() for index, snake of snakes)
+  server.update(snakesJSON, goodies, topTen)
 
 checkCollisions = ->
   resetSnakes = []
@@ -112,13 +108,12 @@ tick = setInterval updateState, 100
 
 io = require 'socket.io'
 express = require 'express'
-sys = require 'sys'
 util = require 'util'
 EventEmitter = (require 'events').EventEmitter
 
 exports.Server =  class Server extends EventEmitter 
   
-  constructor: (port = 5000) -> 
+  constructor: (port = 5001) -> 
     @autoClient = 1
     @port = parseInt(process.env.PORT || port, 10)
 
@@ -138,7 +133,7 @@ exports.Server =  class Server extends EventEmitter
     @socket.of('/snake').on "connection", (client) =>
       client.snakeId = @autoClient
       @autoClient += 1
-      sys.puts "Client #{client.snakeId} connected"
+      util.puts "Client #{client.snakeId} connected"
       @emit('Server.connection', client.snakeId)
       client.emit('id', {id: client.snakeId})
       
@@ -150,7 +145,7 @@ exports.Server =  class Server extends EventEmitter
 
         
       client.on "disconnect", =>
-        sys.puts "Client #{client.snakeId} disconnected"
+        util.puts "Client #{client.snakeId} disconnected"
         @emit('Server.disconnect', client.snakeId)
         
   update: (snakes, goodies, topTen) ->
@@ -175,11 +170,24 @@ exports.Snake = class Snake extends events.EventEmitter
     @length = config.SNAKE_LENGTH
     @name = ""
     @reset()
+    @color = Math.floor(Math.random()*16777215).toString(16) # 16777215 == ffffff in decimal
     
   setName: (name) ->
     @name = name 
     SnakeEmitter.emit('createPlayer', {name: @name})
     
+  toJSON: ->
+    elements: @elements
+    goodies: @goodies
+    kills: @kills
+    deaths: @deaths
+    color: @color
+    name: @name
+    score: @score()
+    
+  score: ->
+    @goodies + @kills
+  
   addKill: ->
     @kills++
     @length = @elements.unshift({x: -1, y: -1})
@@ -188,6 +196,7 @@ exports.Snake = class Snake extends events.EventEmitter
   reset: ->
     rH = Math.floor(Math.random()*49)
     @deaths++
+    @goodies = @kills = 0
     @length = config.SNAKE_LENGTH
     @direction = "right"  
     @elements = ( {x: -i, y: rH} for i in [@length..1])
@@ -249,8 +258,6 @@ exports.Snake = class Snake extends events.EventEmitter
       collision = true if head.x == @elements[i].x and head.y == @elements[i].y
     
     return collision
-
-
 
 
 Array::remove = (e) -> @[t..t] = [] if (t = @.indexOf(e)) > -1
