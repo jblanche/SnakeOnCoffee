@@ -19,6 +19,8 @@ exports.TwitterListener = class TwitterListener extends events
   watch: ->
     @con.stream('statuses/filter',  {track:'future'},  (stream) =>
       stream.on 'data', (data) =>
-        this.emit('newTweet', data)
+        @emit('newTweet', data)
+      stream.on 'end', (resp) =>
+        @watch()
     )
           
